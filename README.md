@@ -9,4 +9,4 @@ Cereal is a header-only library based on [TheCherno](https://github.com/thechern
  - Databases: A database is a collection of objects, each with its own fields and arrays
  - Headers: Headers are optional, but really useful if you want to store more than one database per file. With headers you can have up to 255 databases in a single file!
 
-For more information, check out the [wiki page](https://github.com/marcizhu/Cereal/wiki)
+For more information, check out the [wiki page](https://github.com/marcizhu/Cereal-CSharp/wiki)
