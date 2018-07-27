@@ -15,13 +15,12 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 
 namespace Cereal
 {
-	public class Buffer
+    public class Buffer
 	{
 		private byte[] start;
 		private uint offset;
@@ -168,6 +167,8 @@ namespace Cereal
 
 			int size = Marshal.SizeOf(value);
 
+			if(!HasSpace((uint)size)) return false;
+
 			switch (size)
 			{
 				case 8:
@@ -201,6 +202,7 @@ namespace Cereal
 			ushort size = (ushort)value.Length;
 
 			if(size > 65535) throw new OverflowException("String is too long!");
+			if(!HasSpace((uint)sizeof(ushort) + size)) return false;
 
 			WriteBytes<ushort>(size);
 
@@ -218,9 +220,7 @@ namespace Cereal
 
 			*(&x) = *(uint*)&data;
 
-			WriteBytes<uint>(x);
-
-			return true;
+			return WriteBytes<uint>(x);
 		}
 
 		public unsafe bool WriteBytes(double data)
@@ -229,16 +229,14 @@ namespace Cereal
 
 			*(&x) = *(UInt64*)&data;
 
-			WriteBytes<UInt64>(x);
-
-			return true;
+			return WriteBytes<UInt64>(x);
 		}
 
 		public bool Copy(byte[] data, uint size)
 		{
-			if (this.FreeSpace < size) return false;
+			if (!HasSpace(size)) return false;
 
-			System.Array.Copy(data, 0, data, offset, size);
+			System.Array.Copy(data, 0, start, offset, size);
 
 			offset += size;
 
@@ -247,9 +245,9 @@ namespace Cereal
 
 		public bool Copy(ref Buffer buffer)
 		{
-			if (this.FreeSpace < buffer.Position) return false;
+			if (!HasSpace(buffer.Position)) return false;
 
-			System.Array.Copy(buffer.Data, buffer.Position, start, offset, buffer.Position);
+			System.Array.Copy(buffer.Data, 0, start, offset, buffer.Position);
 
 			offset += buffer.Position;
 

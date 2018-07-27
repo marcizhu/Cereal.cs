@@ -135,9 +135,6 @@ namespace Cereal
 			else
 				s = size;
 
-			//for (uint i = 0; i < s; i++)
-			//	buffer.WriteBytes<byte>(data[i]);
-
 			buffer.Copy(data, s);
 
 			return true;
