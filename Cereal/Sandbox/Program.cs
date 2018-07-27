@@ -9,12 +9,12 @@ namespace Cereal_CSharp
 		static void Main(string[] args)
 		{
 			Cereal.Buffer buff = new Cereal.Buffer(64);
-			buff.readFile(".\\dictionaries.db");
+			buff.ReadFile(".\\dictionaries.db");
 
 			Cereal.Database db = new Cereal.Database();
-			db.read(ref buff);
+			db.Read(ref buff);
 
-			List<string> words = db.getObject("English").getArray("words").getArray();
+			List<string> words = db.GetObject("English").GetArray("words").GetArray();
 
 			foreach(string s in words)
 			{
@@ -23,20 +23,22 @@ namespace Cereal_CSharp
 
 			db = null;
 
-			//Cereal.Object obj = new Cereal.Object("Object");
-			//Cereal.Field field = new Cereal.Field("test", 3.14159265);
+			buff.Clear();
 
-			//obj.Fields.Add(field);
+			Cereal.Object obj = new Cereal.Object("Object");
+			Cereal.Field field = new Cereal.Field("test", 3.14159265);
 
-			//field.write(ref buff);
+			obj.Fields.Add(field);
 
-			//buff.Position = 0;
-			//Cereal.Field f = new Cereal.Field();
-			//f.read(ref buff);
+			field.Write(ref buff);
 
-			//double val = f.getDouble();
+			buff.Position = 0;
+			Cereal.Field f = new Cereal.Field();
+			f.Read(ref buff);
 
-			//Console.WriteLine("Value: {0}", f.getDouble());
+			double val = f.GetDouble();
+
+			Console.WriteLine("Value: {0}", f.GetDouble());
 
 			Console.Write("\nDone.");
 			Console.ReadKey();

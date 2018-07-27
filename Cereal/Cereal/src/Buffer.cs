@@ -30,37 +30,38 @@ namespace Cereal
 		{
 			start = new byte[buffSize];
 
-			cleanBuffer();
+			Clear();
 		}
 
 		public Buffer(byte[] buffStart)
 		{
 			start = buffStart;
-			cleanBuffer();
+			Clear();
 		}
 		public Buffer(byte[] buffStart, uint offs, bool clean = false)
 		{
 			start = buffStart;
 			offset = offs;
 
-			if (clean) cleanBuffer();
+			if (clean) Clear();
 		}
 
 		~Buffer()
 		{
 			start = null;
-			GC.Collect();
-			GC.WaitForPendingFinalizers();
-
 			offset = 0;
 		}
 
-		public void cleanBuffer() { System.Array.Clear(start, 0, start.Length); }
-
-		public Int64 readBytesInt64()
+		public void Clear()
 		{
-			int hiByte = readBytesInt32();
-			int loByte = readBytesInt32();
+			System.Array.Clear(start, 0, start.Length);
+			offset = 0;
+		}
+
+		public Int64 ReadBytesInt64()
+		{
+			int hiByte = ReadBytesInt32();
+			int loByte = ReadBytesInt32();
 
 			Int64 temp = (uint)hiByte;
 			temp = temp << (sizeof(int) * 8);
@@ -69,7 +70,7 @@ namespace Cereal
 			return temp;
 		}
 
-		public int readBytesInt32()
+		public int ReadBytesInt32()
 		{
 			int ret = 0;
 
@@ -81,7 +82,7 @@ namespace Cereal
 			return ret;
 		}
 
-		public short readBytesShort()
+		public short ReadBytesShort()
 		{
 			int ret = 0;
 
@@ -93,13 +94,13 @@ namespace Cereal
 			return (short)ret;
 		}
 
-		public char readBytesChar() { return (char)start[offset++]; }
+		public char ReadBytesChar() { return (char)start[offset++]; }
 
-		public byte readBytesByte() { return start[offset++]; }
+		public byte ReadBytesByte() { return start[offset++]; }
 
-		public float readBytes()
+		public float ReadBytes()
 		{
-			uint value = (uint)readBytesInt32();
+			uint value = (uint)ReadBytesInt32();
 
 			byte[] result = new byte[sizeof(float)];
 
@@ -111,11 +112,11 @@ namespace Cereal
 			return BitConverter.ToSingle(result, 0);
 		}
 
-		public bool readBytesBool() { return start[offset++] != 0; }
+		public bool ReadBytesBool() { return start[offset++] != 0; }
 
-		public float readBytesFloat()
+		public float ReadBytesFloat()
 		{
-			uint value = (uint)readBytesInt32();
+			uint value = (uint)ReadBytesInt32();
 
 			byte[] result = new byte[sizeof(float)];
 
@@ -127,9 +128,9 @@ namespace Cereal
 			return BitConverter.ToSingle(result, 0);
 		}
 
-		public double readBytesDouble()
+		public double ReadBytesDouble()
 		{
-			UInt64 value = (UInt64)readBytesInt64();
+			UInt64 value = (UInt64)ReadBytesInt64();
 
 			byte[] result = new byte[sizeof(double)];
 
@@ -141,25 +142,25 @@ namespace Cereal
 			return BitConverter.ToDouble(result, 0);
 		}
 
-		public string readBytesString()
+		public string ReadBytesString()
 		{
 			string value = "";
 
-			ushort size = (ushort)readBytesShort();
+			ushort size = (ushort)ReadBytesShort();
 
 			for (uint i = 0; i < size; i++)
 			{
-				value += readBytesChar();
+				value += ReadBytesChar();
 			}
 
 			return value;
 		}
 
-		public bool writeBytes<T>(T value)
+		public bool WriteBytes<T>(T value)
 		{
 			if(typeof(T) == typeof(string))
 			{
-				throw new Exception("Invalid call to Buffer::writeBytes<T>(...)"); // debug exception. It will be removed once everything is tested properly
+				throw new Exception("Invalid call to Buffer.writeBytes<T>(...)"); // debug exception. It will be removed once everything is tested properly
 			}
 
 			MemoryStream ms = new MemoryStream();
@@ -195,62 +196,81 @@ namespace Cereal
 			return true;
 		}
 
-		public bool writeBytes(string value)
+		public bool WriteBytes(string value)
 		{
 			ushort size = (ushort)value.Length;
 
-			Debug.Assert(size <= 65535);
+			if(size > 65535) throw new OverflowException("String is too long!");
 
-			writeBytes<ushort>(size);
+			WriteBytes<ushort>(size);
 
 			for (ushort i = 0; i < size; i++)
 			{
-				writeBytes<char>(value[i]);
+				WriteBytes<char>(value[i]);
 			}
 
 			return true;
 		}
 
-		public unsafe bool writeBytes(float data)
+		public unsafe bool WriteBytes(float data)
 		{
 			uint x = 0;
 
 			*(&x) = *(uint*)&data;
 
-			writeBytes<uint>(x);
+			WriteBytes<uint>(x);
 
 			return true;
 		}
 
-		public unsafe bool writeBytes(double data)
+		public unsafe bool WriteBytes(double data)
 		{
 			UInt64 x;
 
 			*(&x) = *(UInt64*)&data;
 
-			writeBytes<UInt64>(x);
+			WriteBytes<UInt64>(x);
 
 			return true;
 		}
 
-		public void shrink()
+		public bool Copy(byte[] data, uint size)
+		{
+			if (this.FreeSpace < size) return false;
+
+			System.Array.Copy(data, 0, data, offset, size);
+
+			offset += size;
+
+			return true;
+		}
+
+		public bool Copy(ref Buffer buffer)
+		{
+			if (this.FreeSpace < buffer.Position) return false;
+
+			System.Array.Copy(buffer.Data, buffer.Position, start, offset, buffer.Position);
+
+			offset += buffer.Position;
+
+			return true;
+		}
+
+		public void Shrink()
 		{
 			byte[] temp = new byte[offset];
 
 			System.Array.Copy(start, temp, offset);
 
 			start = null;
-			GC.Collect();
-			GC.WaitForPendingFinalizers();
-
 			start = temp;
 		}
 
-		public bool hasSpace(uint amount) { return (offset + amount) <= start.Length; }
+		public bool HasSpace(uint amount) { return (offset + amount) <= start.Length; }
 
-		public void addOffset(uint offs) { offset += offs; }
+		public void AddOffset(uint offs) { offset += offs; }
 
-		public bool writeFile(string filepath)
+		public bool WriteFile(string filepath)
 		{
 			FileStream fs = new FileStream(filepath, FileMode.Create);
 
@@ -262,14 +282,10 @@ namespace Cereal
 			return true;
 		}
 
-		public bool readFile(string filepath)
+		public bool ReadFile(string filepath)
 		{
 			if(start != null)
-			{
 				start = null;
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-			}
 
 			FileStream fs = new FileStream(filepath, FileMode.Open);
 

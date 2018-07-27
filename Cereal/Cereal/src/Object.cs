@@ -24,97 +24,86 @@ namespace Cereal
 	public class Object
 	{
 		private string name;
-		private List<Array> arrays = new List<Array>();
-		private List<Field> fields = new List<Field>();
 
 		public Object(string objName) { name = objName; }
 		public Object() { }
 
 		~Object()
 		{
-			for (int i = 0; i < arrays.Count; i++)
-			{
-				arrays[i] = null;
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-			}
+			for (int i = 0; i < Arrays.Count; i++)
+				Arrays[i] = null;
 
-			for (int i = 0; i < fields.Count; i++)
-			{
-				fields[i] = null;
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-			}
+			for (int i = 0; i < Fields.Count; i++)
+				Fields[i] = null;
 		}
 
-		public bool write(ref Buffer buffer)
+		public bool Write(ref Buffer buffer)
 		{
-			if (!buffer.hasSpace(Size)) return false;
+			if (!buffer.HasSpace(Size)) return false;
 
-			Debug.Assert(fields.Count < 65536);
-			Debug.Assert(arrays.Count < 65536);
+			if(Fields.Count > 65535) throw new OverflowException("Too many fields!");
+			if(Arrays.Count > 65535) throw new OverflowException("Too many arrays!");
 
-			buffer.writeBytes<byte>((byte)DataType.DATA_OBJECT);
-			buffer.writeBytes(name);
+			buffer.WriteBytes<byte>((byte)DataType.DATA_OBJECT);
+			buffer.WriteBytes(name);
+			buffer.WriteBytes<ushort>((ushort)Fields.Count);
 
-			buffer.writeBytes<ushort>((ushort)fields.Count);
+			foreach (Field field in Fields)
+				field.Write(ref buffer);
 
-			foreach (Field field in fields)
-				field.write(ref buffer);
+			buffer.WriteBytes<ushort>((ushort)Arrays.Count);
 
-			buffer.writeBytes<ushort>((ushort)arrays.Count);
-
-			foreach (Array array in arrays)
-				array.write(ref buffer);
+			foreach (Array array in Arrays)
+				array.Write(ref buffer);
 
 			return true;
 		}
 
-		public void addField(Field field) { fields.Add(field); }
-		public void addArray(Array array) { arrays.Add(array); }
+		public void AddField(Field field) { Fields.Add(field); }
+		public void AddArray(Array array) { Arrays.Add(array); }
 
-		public Field getField(string name)
+		public Field GetField(string name)
 		{
-			foreach (Field field in fields)
+			foreach (Field field in Fields)
 				if (field.Name == name) return field;
 
 			return null;
 		}
 
-		public Array getArray(string name)
+		public Array GetArray(string name)
 		{
-			foreach(Array array in arrays)
+			foreach(Array array in Arrays)
 				if (array.Name == name) return array;
 
 			return null;
 		}
 
-		public void read(ref Buffer buffer)
+		public void Read(ref Buffer buffer)
 		{
-			byte type = buffer.readBytesByte();
+			byte type = buffer.ReadBytesByte();
 
 			Debug.Assert(type == (byte)Global.DataType.DATA_OBJECT);
 
-			name = buffer.readBytesString();
+			name = buffer.ReadBytesString();
 
-			ushort fieldCount = (ushort)buffer.readBytesShort();
+			ushort fieldCount = (ushort)buffer.ReadBytesShort();
 
 			for (int i = 0; i < fieldCount; i++)
 			{
 				Field field = new Field();
 
-				field.read(ref buffer);
-				addField(field);
+				field.Read(ref buffer);
+				AddField(field);
 			}
 
-			ushort arrayCount = (ushort)buffer.readBytesShort();
+			ushort arrayCount = (ushort)buffer.ReadBytesShort();
 
 			for (int i = 0; i < arrayCount; i++)
 			{
 				Array array = new Array();
 
-				array.read(ref buffer);
-				addArray(array);
+				array.Read(ref buffer);
+				AddArray(array);
 			}
 		}
 
@@ -131,27 +120,18 @@ namespace Cereal
 			{
 				uint ret = sizeof(byte) + sizeof(short) + (uint)name.Length + sizeof(short) + sizeof(short);
 
-				foreach (Field field in fields)
+				foreach (Field field in Fields)
 					ret += field.Size;
 
-				foreach (Array array in arrays)
+				foreach (Array array in Arrays)
 					ret += array.Size;
 
 				return ret;
 			}
 		}
 
-		public List<Field> Fields
-		{
-			get { return fields; }
-			set { fields = value; }
-		}
-
-		public List<Array> Arrays
-		{
-			get { return arrays; }
-			set { arrays = value; }
-		}
+		public List<Field> Fields { get; set; } = new List<Field>();
+		public List<Array> Arrays { get; set; } = new List<Array>();
 		#endregion
 	};
 }

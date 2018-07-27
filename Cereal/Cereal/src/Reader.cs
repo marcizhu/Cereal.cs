@@ -20,10 +20,10 @@ namespace Cereal
 {
 	public static class Reader
 	{
-		public static Int64 readBytesInt64(byte[] src, uint pointer)
+		public static Int64 ReadBytesInt64(byte[] src, uint pointer)
 		{
-			int hiByte = readBytesInt32(src, pointer);
-			int loByte = readBytesInt32(src, pointer + sizeof(int));
+			int hiByte = ReadBytesInt32(src, pointer);
+			int loByte = ReadBytesInt32(src, pointer + sizeof(int));
 
 			Int64 temp = (uint)hiByte;
 			temp = temp << (sizeof(int) * 8);
@@ -32,7 +32,7 @@ namespace Cereal
 			return temp;
 		}
 
-		public static int readBytesInt32(byte[] src, uint pointer)
+		public static int ReadBytesInt32(byte[] src, uint pointer)
 		{
 			int ret = 0;
 
@@ -44,9 +44,9 @@ namespace Cereal
 			return ret;
 		}
 
-		public static bool readBytesBool(byte[] src, uint pointer) { return src[pointer] != 0; }
+		public static bool ReadBytesBool(byte[] src, uint pointer) { return src[pointer] != 0; }
 
-		public static short readBytesShort(byte[] src, uint pointer)
+		public static short ReadBytesShort(byte[] src, uint pointer)
 		{
 			int ret = 0;
 
@@ -58,13 +58,13 @@ namespace Cereal
 			return (short)ret;
 		}
 
-		public static byte readBytesByte(byte[] src, uint pointer) { return src[pointer]; }
+		public static byte ReadBytesByte(byte[] src, uint pointer) { return src[pointer]; }
 
-		public static char readBytesChar(byte[] src, uint pointer) { return (char)src[pointer]; }
+		public static char ReadBytesChar(byte[] src, uint pointer) { return (char)src[pointer]; }
 
-		public static float readBytesFloat(byte[] src, uint pointer)
+		public static float ReadBytesFloat(byte[] src, uint pointer)
 		{
-			uint value = (uint)readBytesInt32(src, pointer);
+			uint value = (uint)ReadBytesInt32(src, pointer);
 
 			byte[] result = new byte[sizeof(float)];
 
@@ -76,9 +76,9 @@ namespace Cereal
 			return BitConverter.ToSingle(result, 0);
 		}
 
-		public static double readBytesDouble(byte[] src, uint pointer)
+		public static double ReadBytesDouble(byte[] src, uint pointer)
 		{
-			UInt64 value = (UInt64)readBytesInt64(src, pointer);
+			UInt64 value = (UInt64)ReadBytesInt64(src, pointer);
 
 			byte[] result = new byte[sizeof(double)];
 
@@ -90,15 +90,15 @@ namespace Cereal
 			return BitConverter.ToDouble(result, 0);
 		}
 
-		public static string readBytesString(byte[] src, uint pointer)
+		public static string ReadBytesString(byte[] src, uint pointer)
 		{
 			string value = "";
 
-			ushort size = (ushort)readBytesShort(src, pointer);
+			ushort size = (ushort)ReadBytesShort(src, pointer);
 
 			for (uint i = pointer + 2; i < pointer + size + 2; i++)
 			{
-				value += readBytesChar(src, i);
+				value += ReadBytesChar(src, i);
 			}
 
 			return value;

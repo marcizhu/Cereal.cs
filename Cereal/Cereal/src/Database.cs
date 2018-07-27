@@ -26,6 +26,56 @@ namespace Cereal
 		private string name;
 		private List<Object> objects = new List<Object>();
 
+
+		// TODO: Fix
+		private static uint crc32(byte[] message, uint len)
+		{
+			if (message == null)
+				throw new ArgumentNullException("message");
+
+			uint mask = 0;
+			uint crc;
+
+			crc = 0xFFFFFFFF;
+
+			for (uint i = 0; i < len; i++)
+			{
+				crc = crc ^  message[i];
+
+				for (int j = 7; j >= 0; j--)
+				{
+					mask = (uint) -(crc & 1);
+					crc = (crc >> 1) ^ (0xEDB88320 & mask);
+				}
+			}
+
+			return ~crc;
+		}
+
+		private static uint crc32(byte[] message, uint offs, uint len)
+		{
+			if (message == null)
+				throw new ArgumentNullException("message");
+
+			uint mask = 0;
+			uint crc;
+
+			crc = 0xFFFFFFFF;
+
+			for (uint i = offs; i < (offs + len); i++)
+			{
+				crc = crc ^  message[i];
+
+				for (int j = 7; j >= 0; j--)
+				{
+					mask = (uint) -(crc & 1);
+					crc = (crc >> 1) ^ (0xEDB88320 & mask);
+				}
+			}
+
+			return ~crc;
+		}
+
 		public Database()
 		{
 			name = "";
@@ -45,65 +95,110 @@ namespace Cereal
 		~Database()
 		{
 			for (int i = 0; i < objects.Count; i++)
-			{
 				objects[i] = null;
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-			}
 		}
 
-		public void read(ref Buffer buffer)
+		public void Read(ref Buffer buffer)
 		{
-			version = (Global.Version)buffer.readBytesShort();
+			version = (Global.Version)buffer.ReadBytesShort();
 
-			Debug.Assert(version != Global.Version.VERSION_INVALID && version <= Global.Version.VERSION_LATEST);
+			if (version == Global.Version.VERSION_INVALID) throw new ArgumentOutOfRangeException("version", "Invalid database version!");
+			if (version > Global.Version.VERSION_LATEST) throw new ArgumentOutOfRangeException("version", "Unsupported version!");
 
 			switch (version)
 			{
 				case Global.Version.VERSION_1_0:
+					name = buffer.ReadBytesString();
+
+					buffer.AddOffset(sizeof(uint)); //we skip the size (don't need it)
+
+					ushort objectCount = (ushort)buffer.ReadBytesShort();
+
+					for (ushort i = 0; i < objectCount; i++)
 					{
-						name = buffer.readBytesString();
+						Object obj = new Object();
 
-						buffer.addOffset(sizeof(uint)); //we skip the size (don't need it)
-
-						ushort objectCount = (ushort)buffer.readBytesShort();
-
-						for (ushort i = 0; i < objectCount; i++)
-						{
-							Object obj = new Object();
-
-							obj.read(ref buffer);
-							this.addObject(obj);
-						}
-
-						break;
+						obj.Read(ref buffer);
+						AddObject(obj);
 					}
+
+					break;
+
+				case Global.Version.VERSION_2_0:
+					//throw new NotImplementedException();
+
+					name = buffer.ReadBytesString();
+
+					uint checksum = (uint)buffer.ReadBytesInt32();
+
+					uint p = buffer.Position;
+					uint size = (uint)buffer.ReadBytesInt32() - sizeof(short) - sizeof(short) - (uint)name.Length - sizeof(uint);
+
+					if(crc32(buffer.Data, p, size) != checksum) throw new ArgumentOutOfRangeException("crc32", "Checksum mismatch!");
+
+					// objectCount already defined in case VERSION_1_0
+					objectCount = (ushort)buffer.ReadBytesShort();
+
+					for (ushort i = 0; i < objectCount; i++)
+					{
+						Object obj = new Object();
+
+						obj.Read(ref buffer);
+						AddObject(obj);
+					}
+
+					break;
 
 				default:
 					throw new ArgumentOutOfRangeException("version", "Invalid database version!");
 			}
 		}
 
-		public bool write(ref Buffer buffer)
+		public bool Write(ref Buffer buffer)
 		{
-			if (!buffer.hasSpace((uint)Size)) return false;
+			if (!buffer.HasSpace((uint)Size)) return false;
 
-			buffer.writeBytes<ushort>((ushort)version);
+			buffer.WriteBytes<ushort>((ushort)version);
 
-			Debug.Assert(version != Global.Version.VERSION_INVALID);
+			if(version == Global.Version.VERSION_INVALID) throw new ArgumentOutOfRangeException("version", "Invalid database version!");
 
 			switch (version)
 			{
 			case Global.Version.VERSION_1_0:
-				Debug.Assert(objects.Count < 65536);
-				Debug.Assert(Size <= 4294967295); // 2^32, maximum database size
+				if(objects.Count > 65536) throw new OverflowException("Too many objects!");
+				if(this.Size > 4294967296) throw new OverflowException("Database size is too big!"); // 2^32, maximum database size
 
-				buffer.writeBytes(name);
-				buffer.writeBytes<uint>((uint)Size);
-				buffer.writeBytes<ushort>((ushort)objects.Count);
+				buffer.WriteBytes(name);
+				buffer.WriteBytes<uint>((uint)Size);
+				buffer.WriteBytes<ushort>((ushort)objects.Count);
 
 				foreach (Object obj in objects)
-					obj.write(ref buffer);
+					obj.Write(ref buffer);
+
+				break;
+
+			case Global.Version.VERSION_2_0:
+				//throw new NotImplementedException();
+
+				if(objects.Count > 65536) throw new OverflowException("Too many objects!");
+				if(this.Size > 4294967296) throw new OverflowException("Database size is too big!"); // 2^32, maximum database size
+
+				uint size = (uint)this.Size - sizeof(short) - sizeof(short) - (uint)name.Length - sizeof(uint);
+
+				Buffer tempBuffer = new Buffer(size);
+
+				buffer.WriteBytes(name);
+
+				tempBuffer.WriteBytes((uint)this.Size);
+				tempBuffer.WriteBytes((ushort)objects.Count);
+
+				foreach (Object obj in objects)
+					obj.Write(ref tempBuffer);
+
+				uint checksum = crc32(tempBuffer.Data, size);
+
+				buffer.WriteBytes(checksum);
+				buffer.Copy(ref tempBuffer);
 
 				break;
 
@@ -114,7 +209,7 @@ namespace Cereal
 			return true;
 		}
 
-		public Object getObject(string name)
+		public Object GetObject(string name)
 		{
 			foreach(Object obj in objects)
 				if (obj.Name == name) return obj;
@@ -122,7 +217,7 @@ namespace Cereal
 			return null;
 		}
 
-		public void addObject(Object obj) { objects.Add(obj); }
+		public void AddObject(Object obj) { objects.Add(obj); }
 
 		#region Properties
 		public List<Object> Objects
@@ -158,6 +253,9 @@ namespace Cereal
 				{
 					case Global.Version.VERSION_1_0:
 						ret += sizeof(short) + (uint)name.Length + sizeof(int) + sizeof(short); break;
+
+					case Global.Version.VERSION_2_0:
+						ret += sizeof(short) + (uint)name.Length + sizeof(int) + sizeof(int) + sizeof(short); break;
 
 					default:
 						throw new ArgumentOutOfRangeException("version", "Cannot calculate the database size with an unknown database version!"); // Invalid version
