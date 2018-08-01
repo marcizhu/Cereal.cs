@@ -269,5 +269,5 @@ namespace Cereal
 			}
 		}
 		#endregion
-	};
+	}
 }
