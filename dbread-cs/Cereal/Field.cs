@@ -27,94 +27,74 @@ namespace Cereal
 		private DataType dataType;
 		private byte[] data = null;
 
-		private void setData<T>(DataType type, T value, string fName)
+		private void SetData<T>(DataType type, T value, string fName)
 		{
 			dataType = type;
 			name = fName;
 
 			if (data != null)
-			{
 				data = null;
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-			}
 
 			//Setting the data
 			data = new byte[Marshal.SizeOf(typeof(T))];
-			Writer.writeBytes<T>(data, 0, value);
+			Writer.WriteBytes<T>(data, 0, value);
 		}
 
-		private void setData(DataType type, bool value, string fName)
+		private void SetData(DataType type, bool value, string fName)
 		{
 			dataType = type;
 			name = fName;
 
 			if (data != null)
-			{
 				data = null;
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-			}
 
 			//Setting the data
 			data = new byte[1];
-			Writer.writeBytes(data, 0, value);
+			Writer.WriteBytes(data, 0, value);
 		}
 
-		private void setData(DataType type, float value, string fName)
+		private void SetData(DataType type, float value, string fName)
 		{
 			dataType = type;
 			name = fName;
 
 			if (data != null)
-			{
 				data = null;
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-			}
 
 			//Setting the data
 			data = new byte[sizeof(float)];
-			Writer.writeBytes(data, 0, value);
+			Writer.WriteBytes(data, 0, value);
 		}
 
-		private void setData(DataType type, double value, string fName)
+		private void SetData(DataType type, double value, string fName)
 		{
 			dataType = type;
 			name = fName;
 
 			if (data != null)
-			{
 				data = null;
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-			}
 
 			//Setting the data
 			data = new byte[sizeof(double)];
-			Writer.writeBytes(data, 0, value);
+			Writer.WriteBytes(data, 0, value);
 		}
 
-		private void setData(DataType type, string value, string fName)
+		private void SetData(DataType type, string value, string fName)
 		{
 			dataType = type;
 			name = fName;
 
 			//Setting the data
 			if (data != null)
-			{
 				data = null;
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-			}
 
 			data = new byte[value.Length + sizeof(short)];
 
-			uint ptr = Writer.writeBytes<ushort>(data, 0, (ushort)value.Length);
+			uint ptr = Writer.WriteBytes<ushort>(data, 0, (ushort)value.Length);
 
 			for (int i = 0; i < value.Length; i++)
 			{
-				ptr = Writer.writeBytes<char>(data, ptr, value[i]);
+				ptr = Writer.WriteBytes<char>(data, ptr, value[i]);
 			}
 		}
 
@@ -126,88 +106,84 @@ namespace Cereal
 			name = "";
 		}
 
-		public Field(string name, byte value) { setData<byte>(DataType.DATA_CHAR /* | MOD_UNSIGNED*/, value, name); }
-		public Field(string name, bool value) { setData(DataType.DATA_BOOL, value, name); }
-		public Field(string name, char value) { setData<char>(DataType.DATA_CHAR, value, name); }
-		public Field(string name, short value) { setData<short>(DataType.DATA_SHORT, value, name); }
-		public Field(string name, int value) { setData<int>(DataType.DATA_INT, value, name); }
-		public Field(string name, Int64 value) { setData<Int64>(DataType.DATA_LONG_LONG, value, name); }
-		public Field(string name, float value) { setData(DataType.DATA_FLOAT, value, name); }
-		public Field(string name, double value) { setData(DataType.DATA_DOUBLE, value, name); }
-		public Field(string name, string value) { setData(DataType.DATA_STRING, value, name); }
+		public Field(string name, byte value) { SetData<byte>(DataType.DATA_CHAR /* | MOD_UNSIGNED*/, value, name); }
+		public Field(string name, bool value) { SetData(DataType.DATA_BOOL, value, name); }
+		public Field(string name, char value) { SetData<char>(DataType.DATA_CHAR, value, name); }
+		public Field(string name, short value) { SetData<short>(DataType.DATA_SHORT, value, name); }
+		public Field(string name, int value) { SetData<int>(DataType.DATA_INT, value, name); }
+		public Field(string name, Int64 value) { SetData<Int64>(DataType.DATA_LONG_LONG, value, name); }
+		public Field(string name, float value) { SetData(DataType.DATA_FLOAT, value, name); }
+		public Field(string name, double value) { SetData(DataType.DATA_DOUBLE, value, name); }
+		public Field(string name, string value) { SetData(DataType.DATA_STRING, value, name); }
 
 		~Field()
 		{
 			if (data != null)
-			{
 				data = null;
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-			}
 		}
 
-		public bool write(ref Buffer buffer)
+		public bool Write(ref Buffer buffer)
 		{
-			if (!buffer.hasSpace(Size)) return false;
+			if (!buffer.HasSpace(Size)) return false;
 
-			buffer.writeBytes<byte>((byte)DataType.DATA_FIELD);
-			buffer.writeBytes(name);
-			buffer.writeBytes<byte>((byte)dataType); //write data type
+			buffer.WriteBytes<byte>((byte)DataType.DATA_FIELD);
+			buffer.WriteBytes(name);
+			buffer.WriteBytes<byte>((byte)dataType); //write data type
 
 			if (dataType != DataType.DATA_STRING)
 			{
-				for (int i = 0; i<sizeOf(dataType); i++)
+				for (int i = 0; i < SizeOf(dataType); i++)
 				{
-					buffer.writeBytes<byte>(data[i]);
+					buffer.WriteBytes<byte>(data[i]);
 				}
 			}
 			else
 			{
-				short len = Reader.readBytesShort(data, 0);
+				short len = Reader.ReadBytesShort(data, 0);
 				len += 2;
 
 				for (int i = 0; i<len; i++)
 				{
-					buffer.writeBytes<byte>(data[i]);
+					buffer.WriteBytes<byte>(data[i]);
 				}
 			}
 
 			return true;
 		}
 
-		public void read(ref Buffer buffer)
+		public void Read(ref Buffer buffer)
 		{
-			byte type = buffer.readBytesByte();
+			byte type = buffer.ReadBytesByte();
 
 			Debug.Assert(type == (byte)Global.DataType.DATA_FIELD);
 
-			string sname = buffer.readBytesString();
+			string sname = buffer.ReadBytesString();
 
-			DataType dataType = (DataType)buffer.readBytesByte();
+			DataType dataType = (DataType)buffer.ReadBytesByte();
 
 			switch (dataType)
 			{
-				case DataType.DATA_BOOL: setData(dataType, buffer.readBytesBool(), sname); break;
-				case DataType.DATA_CHAR: setData<byte>(dataType, buffer.readBytesByte(), sname); break;
-				case DataType.DATA_SHORT: setData<short>(dataType, buffer.readBytesShort(), sname); break;
-				case DataType.DATA_INT: setData<int>(dataType, buffer.readBytesInt32(), sname); break;
-				case DataType.DATA_LONG_LONG: setData<Int64> (dataType, (long)buffer.readBytesInt64(), sname); break;
-				case DataType.DATA_FLOAT: setData(dataType, buffer.readBytesFloat(), sname); break;
-				case DataType.DATA_DOUBLE: setData(dataType, buffer.readBytesDouble(), sname); break;
-				case DataType.DATA_STRING: setData(dataType, buffer.readBytesString(), sname); break;
+				case DataType.DATA_BOOL: SetData(dataType, buffer.ReadBytesBool(), sname); break;
+				case DataType.DATA_CHAR: SetData<byte>(dataType, buffer.ReadBytesByte(), sname); break;
+				case DataType.DATA_SHORT: SetData<short>(dataType, buffer.ReadBytesShort(), sname); break;
+				case DataType.DATA_INT: SetData<int>(dataType, buffer.ReadBytesInt32(), sname); break;
+				case DataType.DATA_LONG_LONG: SetData<Int64> (dataType, (long)buffer.ReadBytesInt64(), sname); break;
+				case DataType.DATA_FLOAT: SetData(dataType, buffer.ReadBytesFloat(), sname); break;
+				case DataType.DATA_DOUBLE: SetData(dataType, buffer.ReadBytesDouble(), sname); break;
+				case DataType.DATA_STRING: SetData(dataType, buffer.ReadBytesString(), sname); break;
 				default: throw new ArgumentOutOfRangeException("dataType", "Invalid data type!");
 			}
 		}
 
-		public byte getByte() { return Reader.readBytesByte(data, 0); }
-		public bool getBool() { return Reader.readBytesBool(data, 0); }
-		public char getChar() { return Reader.readBytesChar(data, 0); }
-		public short getShort() { return Reader.readBytesShort(data, 0); }
-		public int getInt32() { return Reader.readBytesInt32(data, 0); }
-		public float getFloat() { return Reader.readBytesFloat(data, 0); }
-		public Int64 getInt64() { return Reader.readBytesInt64(data, 0); }
-		public double getDouble() { return Reader.readBytesDouble(data, 0); }
-		public string getString() { return Reader.readBytesString(data, 0); }
+		public byte GetByte() { return Reader.ReadBytesByte(data, 0); }
+		public bool GetBool() { return Reader.ReadBytesBool(data, 0); }
+		public char GetChar() { return Reader.ReadBytesChar(data, 0); }
+		public short GetShort() { return Reader.ReadBytesShort(data, 0); }
+		public int GetInt32() { return Reader.ReadBytesInt32(data, 0); }
+		public float GetFloat() { return Reader.ReadBytesFloat(data, 0); }
+		public Int64 GetInt64() { return Reader.ReadBytesInt64(data, 0); }
+		public double GetDouble() { return Reader.ReadBytesDouble(data, 0); }
+		public string GetString() { return Reader.ReadBytesString(data, 0); }
 
 		#region Properties
 		public string Name
@@ -222,10 +198,10 @@ namespace Cereal
 			{
 				if (dataType == DataType.DATA_STRING)
 				{
-					return (uint)(sizeof(byte) + sizeof(short) + name.Length + sizeof(byte) + sizeof(short) + (ushort)Reader.readBytesShort(data, 0));
+					return (uint)(sizeof(byte) + sizeof(short) + name.Length + sizeof(byte) + sizeof(short) + (ushort)Reader.ReadBytesShort(data, 0));
 				}
 
-				return (uint)(sizeof(byte) + sizeof(short) + name.Length + sizeof(byte) + sizeOf(dataType));
+				return (uint)(sizeof(byte) + sizeof(short) + name.Length + sizeof(byte) + SizeOf(dataType));
 			}
 		}
 

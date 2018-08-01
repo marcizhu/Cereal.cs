@@ -23,7 +23,7 @@ namespace Cereal
 {
 	public static class Writer
 	{
-		public static uint writeBytes<T>(byte[] dest, uint pointer, T value)
+		public static uint WriteBytes<T>(byte[] dest, uint pointer, T value)
 		{
 			MemoryStream ms = new MemoryStream();
 			BinaryWriter writer = new BinaryWriter(ms);
@@ -58,45 +58,45 @@ namespace Cereal
 			return pointer + (uint)size;
 		}
 
-		public static uint writeBytes(byte[] dest, uint pointer, bool value)
+		public static uint WriteBytes(byte[] dest, uint pointer, bool value)
 		{
 			dest[pointer] = value != false ? (byte)1 : (byte)0;
 
 			return pointer + 1;
 		}
 
-		public static uint writeBytes(byte[] dest, uint pointer, string str)
+		public static uint WriteBytes(byte[] dest, uint pointer, string str)
 		{
 			ushort size = (ushort)str.Length;
 
-			Debug.Assert(size <= 65535);
+			if(size > 65535) throw new OverflowException("String is too long!");
 
-			pointer = writeBytes<ushort>(dest, pointer, size);
+			pointer = WriteBytes<ushort>(dest, pointer, size);
 
 			for (ushort i = 0; i < size; i++)
 			{
-				pointer = writeBytes<char>(dest, pointer, str[i]);
+				pointer = WriteBytes<char>(dest, pointer, str[i]);
 			}
 
 			return pointer;
 		}
 
-		public static unsafe uint writeBytes(byte[] dest, uint pointer, float data)
+		public static unsafe uint WriteBytes(byte[] dest, uint pointer, float data)
 		{
 			uint x;
 
 			*(uint*)&x = *(uint*)&data;
 
-			return writeBytes<uint>(dest, pointer, x);
+			return WriteBytes<uint>(dest, pointer, x);
 		}
 
-		public static unsafe uint writeBytes(byte[] dest, uint pointer, double data)
+		public static unsafe uint WriteBytes(byte[] dest, uint pointer, double data)
 		{
 			UInt64 x;
 
 			*(UInt64*)&x = *(UInt64*)&data;
 
-			return writeBytes<UInt64>(dest, pointer, x);
+			return WriteBytes<UInt64>(dest, pointer, x);
 		}
 	};
 }

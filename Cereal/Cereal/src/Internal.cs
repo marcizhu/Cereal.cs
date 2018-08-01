@@ -29,7 +29,7 @@ namespace Cereal
 
 			VERSION_LATEST = VERSION_2_0,
 			VERSION_INVALID = 0xFFFF
-		};
+		}
 
 		public enum DataType
 		{
@@ -48,7 +48,7 @@ namespace Cereal
 			DATA_OBJECT = 11,
 
 			MOD_UNSIGNED = (1 << 4) // unsigned modifier
-		};
+		}
 
 		public static ushort SizeOf(DataType type)
 		{
@@ -66,5 +66,4 @@ namespace Cereal
 			}
 		}
 	}
-
 }

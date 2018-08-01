@@ -1,4 +1,4 @@
-﻿//  Cereal: A C++/C# Serialization library
+//  Cereal: A C++/C# Serialization library
 //  Copyright (C) 2016  The Cereal Team
 //
 //  This program is free software: you can redistribute it and/or modify
@@ -30,7 +30,7 @@ namespace Cereal
 		private uint size = 0;
 		private byte[] data;
 
-		private void setData<T>(DataType type, T[] value, string arrayName)
+		private void SetData<T>(DataType type, T[] value, string arrayName)
 		{
 			if (type == DataType.DATA_UNKNOWN) return;
 
@@ -39,25 +39,21 @@ namespace Cereal
 			dataType = type;
 
 			if (data != null)
-			{
 				data = null;
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-			}
 
-			data = new byte[Global.sizeOf(type) * count];
+			data = new byte[SizeOf(type) * count];
 
-			Debug.Assert((count * Marshal.SizeOf(typeof(T))) < 4294967296); // Maximum item count (overflow of pointer and buffer)
+			if((count * Marshal.SizeOf(typeof(T))) > 4294967296) throw new OverflowException("Array size is too big!"); // Maximum item count (overflow of pointer and buffer)
 
 			uint pointer = 0;
 
 			for (uint i = 0; i < count; i++)
 			{
-				pointer = Writer.writeBytes<T>(data, pointer, value[i]);
+				pointer = Writer.WriteBytes<T>(data, pointer, value[i]);
 			}
 		}
 
-		private void setData(DataType type, bool[] value, string arrayName)
+		private void SetData(DataType type, bool[] value, string arrayName)
 		{
 			if (type == DataType.DATA_UNKNOWN) return;
 
@@ -66,35 +62,26 @@ namespace Cereal
 			dataType = type;
 
 			if (data != null)
-			{
 				data = null;
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-			}
 
 			data = new byte[count];
 
-			Debug.Assert(count < 4294967295); // Maximum item count (overflow of pointer and buffer)
-
+			if((count * Marshal.SizeOf(typeof(bool))) > 4294967296) throw new OverflowException("Array size is too big!"); // Maximum item count (overflow of pointer and buffer)
 			uint pointer = 0;
 
 			for (uint i = 0; i < count; i++)
 			{
-				pointer = Writer.writeBytes(data, pointer, value[i]);
+				pointer = Writer.WriteBytes(data, pointer, value[i]);
 			}
 		}
 
-		void setData(DataType type, string[] value, string name)
+		void SetData(DataType type, string[] value, string name)
 		{
 			count = (uint)value.Length;
 			dataType = type;
 
 			if (data != null)
-			{
 				data = null;
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-			}
 
 			size = 0;
 
@@ -110,79 +97,70 @@ namespace Cereal
 
 			for (uint i = 0; i < count; i++)
 			{
-				pointer = Writer.writeBytes(data, pointer, value[i]);
+				pointer = Writer.WriteBytes(data, pointer, value[i]);
 			}
 		}
 
 		// public
-		public Array() { setData<byte>(DataType.DATA_UNKNOWN, null, ""); }
-		public Array(string name, byte[] value) { setData<byte>(DataType.DATA_CHAR, value, name); }
-		public Array(string name, bool[] value) { setData(DataType.DATA_BOOL, value, name); }
-		public Array(string name, char[] value) { setData<char>(DataType.DATA_CHAR, value, name); }
-		public Array(string name, short[] value) { setData<short>(DataType.DATA_SHORT, value, name); }
-		public Array(string name, int[] value) { setData<int>(DataType.DATA_INT, value, name); }
-		public Array(string name, float[] value) { setData<float>(DataType.DATA_FLOAT, value, name); }
-		public Array(string name, UInt64[] value) { setData<UInt64>(DataType.DATA_LONG_LONG, value, name); }
-		public Array(string name, double[] value) { setData<double>(DataType.DATA_DOUBLE, value, name); }
-		public Array(string name, string[] value) { setData(DataType.DATA_STRING, value, name); }
+		public Array() { SetData<byte>(DataType.DATA_UNKNOWN, null, ""); }
+		public Array(string name, byte[] value) { SetData<byte>(DataType.DATA_CHAR, value, name); }
+		public Array(string name, bool[] value) { SetData(DataType.DATA_BOOL, value, name); }
+		public Array(string name, char[] value) { SetData<char>(DataType.DATA_CHAR, value, name); }
+		public Array(string name, short[] value) { SetData<short>(DataType.DATA_SHORT, value, name); }
+		public Array(string name, int[] value) { SetData<int>(DataType.DATA_INT, value, name); }
+		public Array(string name, float[] value) { SetData<float>(DataType.DATA_FLOAT, value, name); }
+		public Array(string name, UInt64[] value) { SetData<UInt64>(DataType.DATA_LONG_LONG, value, name); }
+		public Array(string name, double[] value) { SetData<double>(DataType.DATA_DOUBLE, value, name); }
+		public Array(string name, string[] value) { SetData(DataType.DATA_STRING, value, name); }
 
 		~Array()
 		{
 			if (data != null)
-			{
 				data = null;
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-			}
 		}
 
-		public bool write(ref Buffer buffer)
+		public bool Write(ref Buffer buffer)
 		{
-			if (!buffer.hasSpace(Size)) return false;
+			if (!buffer.HasSpace(Size)) return false;
 
-			buffer.writeBytes<byte>((byte)DataType.DATA_ARRAY);
-			buffer.writeBytes(name);
-			buffer.writeBytes<byte>((byte)dataType);
-			buffer.writeBytes<uint>(count);
+			buffer.WriteBytes<byte>((byte)DataType.DATA_ARRAY);
+			buffer.WriteBytes(name);
+			buffer.WriteBytes<byte>((byte)dataType);
+			buffer.WriteBytes<uint>(count);
 
 			uint s;
 
 			if (dataType != DataType.DATA_STRING)
-				s = sizeOf(dataType) * count;
+				s = SizeOf(dataType) * count;
 			else
 				s = size;
 
-			for (uint i = 0; i < s; i++)
-				buffer.writeBytes<byte>(data[i]);
+			buffer.Copy(data, s);
 
 			return true;
 		}
 
-		public void read(ref Buffer buffer)
+		public void Read(ref Buffer buffer)
 		{
-			DataType type = (DataType)buffer.readBytesByte();
+			DataType type = (DataType)buffer.ReadBytesByte();
 
 			Debug.Assert(type == DataType.DATA_ARRAY);
 
-			name = buffer.readBytesString();
+			name = buffer.ReadBytesString();
 
-			dataType = (DataType)buffer.readBytesByte();
-			count = (uint)buffer.readBytesInt32();
+			dataType = (DataType)buffer.ReadBytesByte();
+			count = (uint)buffer.ReadBytesInt32();
 
 			if (data != null)
-			{
 				data = null;
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-			}
 
 			if (dataType != DataType.DATA_STRING)
 			{
-				data = new byte[count * sizeOf(dataType)];
+				data = new byte[count * SizeOf(dataType)];
 
-				System.Array.Copy(buffer.Data, buffer.Position, data, 0, count * sizeOf(dataType));
+				System.Array.Copy(buffer.Data, buffer.Position, data, 0, count * SizeOf(dataType));
 
-				buffer.addOffset(count * sizeOf(dataType));
+				buffer.AddOffset(count * SizeOf(dataType));
 			}
 			else
 			{
@@ -190,7 +168,7 @@ namespace Cereal
 
 				for (uint i = 0; i < count; i++)
 				{
-					buffer.readBytesString();
+					buffer.ReadBytesString();
 				}
 
 				size = buffer.Position - start;
@@ -201,7 +179,7 @@ namespace Cereal
 			}
 		}
 
-		public List<T> getArray<T>()
+		public List<T> GetArray<T>()
 		{
 			/*List<T> ret = new List<T>();
 
@@ -218,7 +196,7 @@ namespace Cereal
 			throw new NotImplementedException();
 		}
 
-		public List<string> getArray()
+		public List<string> GetArray()
 		{
 			List<string> ret = new List<string>();
 
@@ -226,23 +204,23 @@ namespace Cereal
 
 			for (uint i = 0; i < count; i++)
 			{
-				ret.Add(Reader.readBytesString(data, pointer));
+				ret.Add(Reader.ReadBytesString(data, pointer));
 
-				pointer += (ushort)Reader.readBytesShort(data, pointer) + (uint)sizeof(ushort);
+				pointer += (ushort)Reader.ReadBytesShort(data, pointer) + (uint)sizeof(ushort);
 			}
 
 			return ret;
 		}
 
 		// This returns the data in little endian (necessary for >1 byte data types like shorts or ints)
-		#region getRawArray()
-		public bool[] getRawArray(bool[] mem)
+		#region GetRawArray()
+		public bool[] GetRawArray(bool[] mem)
 		{
 			uint pointer = 0;
 
 			for (uint i = 0; i < count; i++)
 			{
-				mem[i] = Reader.readBytesBool(data, pointer);
+				mem[i] = Reader.ReadBytesBool(data, pointer);
 
 				pointer += (uint)sizeof(bool);
 			}
@@ -250,13 +228,13 @@ namespace Cereal
 			return mem;
 		}
 
-		public byte[] getRawArray(byte[] mem)
+		public byte[] GetRawArray(byte[] mem)
 		{
 			uint pointer = 0;
 
 			for (uint i = 0; i < count; i++)
 			{
-				mem[i] = Reader.readBytesByte(data, pointer);
+				mem[i] = Reader.ReadBytesByte(data, pointer);
 
 				pointer += (uint)sizeof(byte);
 			}
@@ -264,13 +242,13 @@ namespace Cereal
 			return mem;
 		}
 
-		public char[] getRawArray(char[] mem)
+		public char[] GetRawArray(char[] mem)
 		{
 			uint pointer = 0;
 
 			for (uint i = 0; i < count; i++)
 			{
-				mem[i] = Reader.readBytesChar(data, pointer);
+				mem[i] = Reader.ReadBytesChar(data, pointer);
 
 				pointer += (uint)sizeof(char);
 			}
@@ -278,13 +256,13 @@ namespace Cereal
 			return mem;
 		}
 
-		public short[] getRawArray(short[] mem)
+		public short[] GetRawArray(short[] mem)
 		{
 			uint pointer = 0;
 
 			for (uint i = 0; i < count; i++)
 			{
-				mem[i] = Reader.readBytesShort(data, pointer);
+				mem[i] = Reader.ReadBytesShort(data, pointer);
 
 				pointer += (uint)sizeof(short);
 			}
@@ -292,13 +270,13 @@ namespace Cereal
 			return mem;
 		}
 
-		public float[] getRawArray(float[] mem)
+		public float[] GetRawArray(float[] mem)
 		{
 			uint pointer = 0;
 
 			for (uint i = 0; i < count; i++)
 			{
-				mem[i] = Reader.readBytesFloat(data, pointer);
+				mem[i] = Reader.ReadBytesFloat(data, pointer);
 
 				pointer += (uint)sizeof(float);
 			}
@@ -306,13 +284,13 @@ namespace Cereal
 			return mem;
 		}
 
-		public double[] getRawArray(double[] mem)
+		public double[] GetRawArray(double[] mem)
 		{
 			uint pointer = 0;
 
 			for (uint i = 0; i < count; i++)
 			{
-				mem[i] = Reader.readBytesDouble(data, pointer);
+				mem[i] = Reader.ReadBytesDouble(data, pointer);
 
 				pointer += (uint)sizeof(double);
 			}
@@ -320,13 +298,13 @@ namespace Cereal
 			return mem;
 		}
 
-		public int[] getRawArray(int[] mem)
+		public int[] GetRawArray(int[] mem)
 		{
 			uint pointer = 0;
 
 			for (uint i = 0; i < count; i++)
 			{
-				mem[i] = Reader.readBytesInt32(data, pointer);
+				mem[i] = Reader.ReadBytesInt32(data, pointer);
 
 				pointer += (uint)sizeof(int);
 			}
@@ -334,13 +312,13 @@ namespace Cereal
 			return mem;
 		}
 
-		public Int64[] getRawArray(Int64[] mem)
+		public Int64[] GetRawArray(Int64[] mem)
 		{
 			uint pointer = 0;
 
 			for (uint i = 0; i < count; i++)
 			{
-				mem[i] = Reader.readBytesInt64(data, pointer);
+				mem[i] = Reader.ReadBytesInt64(data, pointer);
 
 				pointer += (uint)sizeof(UInt64);
 			}
@@ -348,7 +326,7 @@ namespace Cereal
 			return mem;
 		}
 
-		public string[] getRawArray(string[] mem)
+		public string[] GetRawArray(string[] mem)
 		{
 			throw new NotImplementedException();
 		}
@@ -372,7 +350,7 @@ namespace Cereal
 			{
 				if (dataType != DataType.DATA_STRING)
 				{
-					return sizeof(byte) + sizeof(short) + (uint)Name.Length + sizeof(byte) + sizeof(int) + count * Global.sizeOf(dataType);
+					return sizeof(byte) + sizeof(short) + (uint)Name.Length + sizeof(byte) + sizeof(int) + count * SizeOf(dataType);
 				}
 				else
 				{

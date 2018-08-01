@@ -26,7 +26,6 @@ namespace Cereal
 		private string name;
 		private List<Object> objects = new List<Object>();
 
-
 		// TODO: Fix
 		private static uint crc32(byte[] message, uint len)
 		{
@@ -252,10 +251,12 @@ namespace Cereal
 				switch (version)
 				{
 					case Global.Version.VERSION_1_0:
-						ret += sizeof(short) + (uint)name.Length + sizeof(int) + sizeof(short); break;
+						ret += sizeof(short) + (uint)name.Length + sizeof(int) + sizeof(short);
+						break;
 
 					case Global.Version.VERSION_2_0:
-						ret += sizeof(short) + (uint)name.Length + sizeof(int) + sizeof(int) + sizeof(short); break;
+						ret += sizeof(short) + (uint)name.Length + sizeof(int) + sizeof(int) + sizeof(short);
+						break;
 
 					default:
 						throw new ArgumentOutOfRangeException("version", "Cannot calculate the database size with an unknown database version!"); // Invalid version

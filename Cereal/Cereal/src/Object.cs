@@ -133,5 +133,5 @@ namespace Cereal
 		public List<Field> Fields { get; set; } = new List<Field>();
 		public List<Array> Arrays { get; set; } = new List<Array>();
 		#endregion
-	};
+	}
 }

@@ -210,5 +210,5 @@ namespace Cereal
 			get { return DataType; }
 		}
 		#endregion
-	};
+	}
 }

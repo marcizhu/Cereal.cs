@@ -33,16 +33,20 @@ namespace Cereal
 			switch (size)
 			{
 				case 8:
-					writer.Write(Convert.ToInt64(value)); break;
+					writer.Write(Convert.ToInt64(value));
+					break;
 
 				case 4:
-					writer.Write(Convert.ToInt32(value)); break;
+					writer.Write(Convert.ToInt32(value));
+					break;
 
 				case 2:
-					writer.Write(Convert.ToInt16(value)); break;
+					writer.Write(Convert.ToInt16(value));
+					break;
 
 				case 1:
-					writer.Write(Convert.ToByte(value)); break;
+					writer.Write(Convert.ToByte(value));
+					break;
 
 				default:
 					throw new ArgumentOutOfRangeException("sizeof(value)", "Invalid call to Writer::writeBytes<T>");
@@ -98,5 +102,5 @@ namespace Cereal
 
 			return WriteBytes<UInt64>(dest, pointer, x);
 		}
-	};
+	}
 }

@@ -113,5 +113,5 @@ namespace Cereal
 			get { return databases; }
 		}
 		#endregion
-	};
+	}
 }

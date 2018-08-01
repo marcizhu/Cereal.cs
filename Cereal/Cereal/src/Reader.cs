@@ -38,7 +38,7 @@ namespace Cereal
 
 			for(int i = 0; i < sizeof(int); i++)
 			{
-				ret |= src[pointer + i] << ((sizeof(int) * 8 - 8) - (i * 8));
+				ret |= (src[pointer + i] << ((sizeof(int) * 8 - 8) - (i * 8)));
 			}
 
 			return ret;
@@ -52,7 +52,7 @@ namespace Cereal
 
 			for (int i = 0; i < sizeof(short); i++)
 			{
-				ret |= src[pointer + i] << ((sizeof(short) * 8 - 8) - (short)(i * 8));
+				ret |= (src[pointer + i] << ((sizeof(short) * 8 - 8) - (short)(i * 8)));
 			}
 
 			return (short)ret;
@@ -103,5 +103,5 @@ namespace Cereal
 
 			return value;
 		}
-	};
+	}
 }

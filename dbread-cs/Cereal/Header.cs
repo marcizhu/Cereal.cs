@@ -29,26 +29,22 @@ namespace Cereal
 		~Header()
 		{
 			for (int i = 0; i < databases.Count; i++)
-			{
 				databases[i] = null;
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-			}
 		}
 
-		public void read(ref Buffer buffer)
+		public void Read(ref Buffer buffer)
 		{
-			ushort magic = (ushort)buffer.readBytesShort();
+			ushort magic = (ushort)buffer.ReadBytesShort();
 
 			Debug.Assert(magic == Global.MAGIC_NUMBER);
 
-			byte count = buffer.readBytesByte();
+			byte count = buffer.ReadBytesByte();
 
 			List<uint> offsets = new List<uint>();
 
 			for (byte i = 0; i < count; i++)
 			{
-				offsets.Add((uint)buffer.readBytesInt32());
+				offsets.Add((uint)buffer.ReadBytesInt32());
 			}
 
 			foreach (uint offs in offsets)
@@ -59,38 +55,38 @@ namespace Cereal
 
 				Database db = new Database();
 
-				db.read(ref buffer);
-				addDatabase(db);
+				db.Read(ref buffer);
+				AddDatabase(db);
 			}
 		}
 
-		public bool write(ref Buffer buffer)
+		public bool Write(ref Buffer buffer)
 		{
-			if (!buffer.hasSpace(Size)) return false;
+			if (!buffer.HasSpace(Size)) return false;
 
-			Debug.Assert(databases.Count < 256);
+			if(databases.Count > 255) throw new OverflowException("Too many databases!");
 
-			buffer.writeBytes<ushort>(Global.MAGIC_NUMBER);
-			buffer.writeBytes<byte>((byte)databases.Count);
+			buffer.WriteBytes<ushort>(Global.MAGIC_NUMBER);
+			buffer.WriteBytes<byte>((byte)databases.Count);
 
 			uint offset = (uint)(sizeof(short) + sizeof(byte) + (sizeof(uint) * databases.Count));
 
 			for (int i = 0; i < databases.Count; i++)
 			{
-				buffer.writeBytes<uint>(offset);
+				buffer.WriteBytes<uint>(offset);
 
 				offset += (uint)databases[i].Size;
 			}
 
 			foreach (Database db in databases)
-				db.write(ref buffer);
+				db.Write(ref buffer);
 
 			return true;
 		}
 
-		public void addDatabase(Database db) { databases.Add(db); }
+		public void AddDatabase(Database db) { databases.Add(db); }
 
-		public Database getDatabase(string name)
+		public Database GetDatabase(string name)
 		{
 			foreach (Database db in databases)
 				if (db.Name == name) return db;
