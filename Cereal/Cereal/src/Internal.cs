@@ -62,7 +62,7 @@ namespace Cereal
 				case DataType.DATA_LONG_LONG: return sizeof(UInt64);
 				case DataType.DATA_DOUBLE: return sizeof(double);
 
-				default: return 0;
+				default: throw new InvalidOperationException("Invalid input data type!");
 			}
 		}
 	}

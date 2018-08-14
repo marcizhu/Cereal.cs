@@ -75,8 +75,11 @@ namespace Cereal
 			}
 		}
 
-		void SetData(DataType type, string[] value, string name)
+		private void SetData(DataType type, string[] value, string arrayName)
 		{
+			if (type == DataType.DATA_UNKNOWN) return;
+
+			name = arrayName;
 			count = (uint)value.Length;
 			dataType = type;
 
@@ -94,6 +97,7 @@ namespace Cereal
 			data = new byte[size];
 
 			uint pointer = 0;
+			// TODO: Check for overflow!
 
 			for (uint i = 0; i < count; i++)
 			{
@@ -179,38 +183,15 @@ namespace Cereal
 			}
 		}
 
-		public List<T> GetArray<T>()
-		{
-			/*List<T> ret = new List<T>();
-
-			uint pointer = 0;
-
-			for (int i = 0; i < count; i++)
-			{
-				ret.Add(Reader.readBytes<T>(data, pointer));
-
-				pointer += (uint)Marshal.SizeOf(typeof(T));
-			}
-
-			return ret;*/
-			throw new NotImplementedException();
-		}
-
-		public List<string> GetArray()
-		{
-			List<string> ret = new List<string>();
-
-			uint pointer = 0;
-
-			for (uint i = 0; i < count; i++)
-			{
-				ret.Add(Reader.ReadBytesString(data, pointer));
-
-				pointer += (ushort)Reader.ReadBytesShort(data, pointer) + (uint)sizeof(ushort);
-			}
-
-			return ret;
-		}
+		public List<byte> GetArrayByte() { return new List<byte>(GetRawArray(new byte[ItemCount])); }
+		public List<bool> GetArrayBool() { return new List<bool>(GetRawArray(new bool[ItemCount])); }
+		public List<char> GetArrayChar() { return new List<char>(GetRawArray(new char[ItemCount])); }
+		public List<short> GetArrayShort() { return new List<short>(GetRawArray(new short[ItemCount])); }
+		public List<int> GetArrayInt32() { return new List<int>(GetRawArray(new int[ItemCount])); }
+		public List<float> GetArrayFloat() { return new List<float>(GetRawArray(new float[ItemCount])); }
+		public List<Int64> GetArrayInt64() { return new List<Int64>(GetRawArray(new Int64[ItemCount])); }
+		public List<double> GetArrayDouble() { return new List<double>(GetRawArray(new double[ItemCount])); }
+		public List<string> GetArrayString() { return new List<string>(GetRawArray(new string[ItemCount])); }
 
 		// This returns the data in little endian (necessary for >1 byte data types like shorts or ints)
 		#region GetRawArray()
@@ -328,7 +309,16 @@ namespace Cereal
 
 		public string[] GetRawArray(string[] mem)
 		{
-			throw new NotImplementedException();
+			uint pointer = 0;
+
+			for (uint i = 0; i < count; i++)
+			{
+				mem[i] = Reader.ReadBytesString(data, pointer);
+
+				pointer += (ushort)Reader.ReadBytesShort(data, pointer) + (uint)sizeof(ushort);
+			}
+
+			return mem;
 		}
 		#endregion
 

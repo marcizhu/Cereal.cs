@@ -24,9 +24,7 @@ namespace Cereal
 	{
 		private Global.Version version;
 		private string name;
-		private List<Object> objects = new List<Object>();
 
-		// TODO: Fix
 		private static uint crc32(byte[] message, uint len)
 		{
 			if (message == null)
@@ -93,8 +91,8 @@ namespace Cereal
 
 		~Database()
 		{
-			for (int i = 0; i < objects.Count; i++)
-				objects[i] = null;
+			for (int i = 0; i < Objects.Count; i++)
+				Objects[i] = null;
 		}
 
 		public void Read(ref Buffer buffer)
@@ -124,8 +122,6 @@ namespace Cereal
 					break;
 
 				case Global.Version.VERSION_2_0:
-					//throw new NotImplementedException();
-
 					name = buffer.ReadBytesString();
 
 					uint checksum = (uint)buffer.ReadBytesInt32();
@@ -164,14 +160,14 @@ namespace Cereal
 			switch (version)
 			{
 			case Global.Version.VERSION_1_0:
-				if(objects.Count > 65536) throw new OverflowException("Too many objects!");
+				if(Objects.Count > 65536) throw new OverflowException("Too many objects!");
 				if(this.Size > 4294967296) throw new OverflowException("Database size is too big!"); // 2^32, maximum database size
 
 				buffer.WriteBytes(name);
 				buffer.WriteBytes<uint>((uint)Size);
-				buffer.WriteBytes<ushort>((ushort)objects.Count);
+				buffer.WriteBytes<ushort>((ushort)Objects.Count);
 
-				foreach (Object obj in objects)
+				foreach (Object obj in Objects)
 					obj.Write(ref buffer);
 
 				break;
@@ -179,7 +175,7 @@ namespace Cereal
 			case Global.Version.VERSION_2_0:
 				//throw new NotImplementedException();
 
-				if(objects.Count > 65536) throw new OverflowException("Too many objects!");
+				if(Objects.Count > 65536) throw new OverflowException("Too many objects!");
 				if(this.Size > 4294967296) throw new OverflowException("Database size is too big!"); // 2^32, maximum database size
 
 				uint size = (uint)this.Size - sizeof(short) - sizeof(short) - (uint)name.Length - sizeof(uint);
@@ -189,9 +185,9 @@ namespace Cereal
 				buffer.WriteBytes(name);
 
 				tempBuffer.WriteBytes((uint)this.Size);
-				tempBuffer.WriteBytes((ushort)objects.Count);
+				tempBuffer.WriteBytes((ushort)Objects.Count);
 
-				foreach (Object obj in objects)
+				foreach (Object obj in Objects)
 					obj.Write(ref tempBuffer);
 
 				uint checksum = crc32(tempBuffer.Data, size);
@@ -210,19 +206,16 @@ namespace Cereal
 
 		public Object GetObject(string name)
 		{
-			foreach(Object obj in objects)
+			foreach(Object obj in Objects)
 				if (obj.Name == name) return obj;
 
 			return null;
 		}
 
-		public void AddObject(Object obj) { objects.Add(obj); }
+		public void AddObject(Object obj) { Objects.Add(obj); }
 
 		#region Properties
-		public List<Object> Objects
-		{
-			get { return objects; }
-		}
+		public List<Object> Objects { get; set; } = new List<Object>();
 
 		public Global.Version Version
 		{
@@ -251,18 +244,16 @@ namespace Cereal
 				switch (version)
 				{
 					case Global.Version.VERSION_1_0:
-						ret += sizeof(short) + (uint)name.Length + sizeof(int) + sizeof(short);
-						break;
+						ret += sizeof(short) + (uint)name.Length + sizeof(int) + sizeof(short); break;
 
 					case Global.Version.VERSION_2_0:
-						ret += sizeof(short) + (uint)name.Length + sizeof(int) + sizeof(int) + sizeof(short);
-						break;
+						ret += sizeof(short) + (uint)name.Length + sizeof(int) + sizeof(int) + sizeof(short); break;
 
 					default:
 						throw new ArgumentOutOfRangeException("version", "Cannot calculate the database size with an unknown database version!"); // Invalid version
 				}
 
-				foreach (Object obj in objects)
+				foreach (Object obj in Objects)
 					ret += obj.Size;
 
 				return ret;
