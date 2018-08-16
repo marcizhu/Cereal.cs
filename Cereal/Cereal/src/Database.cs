@@ -173,8 +173,6 @@ namespace Cereal
 				break;
 
 			case Global.Version.VERSION_2_0:
-				//throw new NotImplementedException();
-
 				if(Objects.Count > 65536) throw new OverflowException("Too many objects!");
 				if(this.Size > 4294967296) throw new OverflowException("Database size is too big!"); // 2^32, maximum database size
 

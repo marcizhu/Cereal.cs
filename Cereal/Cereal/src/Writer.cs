@@ -85,22 +85,28 @@ namespace Cereal
 			return pointer;
 		}
 
-		public static unsafe uint WriteBytes(byte[] dest, uint pointer, float data)
+		public static uint WriteBytes(byte[] dest, uint pointer, float data)
 		{
-			uint x;
+			byte[] src = BitConverter.GetBytes(data);
 
-			*(uint*)&x = *(uint*)&data;
+			for (int i = 0; i < sizeof(float); i++)
+			{
+				dest[pointer + i] = src[sizeof(float) - 1 - i];
+			}
 
-			return WriteBytes<uint>(dest, pointer, x);
+			return pointer + sizeof(float);
 		}
 
-		public static unsafe uint WriteBytes(byte[] dest, uint pointer, double data)
+		public static uint WriteBytes(byte[] dest, uint pointer, double data)
 		{
-			UInt64 x;
+			byte[] src = BitConverter.GetBytes(data);
 
-			*(UInt64*)&x = *(UInt64*)&data;
+			for (int i = 0; i < sizeof(double); i++)
+			{
+				dest[pointer + i] = src[sizeof(double) - 1 - i];
+			}
 
-			return WriteBytes<UInt64>(dest, pointer, x);
+			return pointer + sizeof(double);
 		}
 	}
 }

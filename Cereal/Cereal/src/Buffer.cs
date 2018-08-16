@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 
 namespace Cereal
 {
-    public class Buffer
+	public class Buffer
 	{
 		private byte[] start;
 		private uint offset;
@@ -87,7 +87,7 @@ namespace Cereal
 
 			for (int i = 0; i< sizeof(short); i++)
 			{
-				ret |= start[offset++] << ((sizeof(short) * 8 - 8) - (short)(i* 8));
+				ret |= start[offset++] << ((sizeof(short) * 8 - 8) - (short)(i * 8));
 			}
 
 			return (short)ret;
@@ -96,20 +96,6 @@ namespace Cereal
 		public char ReadBytesChar() { return (char)start[offset++]; }
 
 		public byte ReadBytesByte() { return start[offset++]; }
-
-		public float ReadBytes()
-		{
-			uint value = (uint)ReadBytesInt32();
-
-			byte[] result = new byte[sizeof(float)];
-
-			for (int i = 0; i < sizeof(float); i++)
-			{
-				result[i] = BitConverter.GetBytes(value)[i];
-			}
-
-			return BitConverter.ToSingle(result, 0);
-		}
 
 		public bool ReadBytesBool() { return start[offset++] != 0; }
 
@@ -218,22 +204,28 @@ namespace Cereal
 			return true;
 		}
 
-		public unsafe bool WriteBytes(float data)
+		public bool WriteBytes(float data)
 		{
-			uint x = 0;
+			byte[] src = BitConverter.GetBytes(data);
 
-			*(&x) = *(uint*)&data;
+			for (int i = 0; i < sizeof(float); i++)
+			{
+				start[offset++] = src[sizeof(float) - 1 - i];
+			}
 
-			return WriteBytes<uint>(x);
+			return true;
 		}
 
-		public unsafe bool WriteBytes(double data)
+		public bool WriteBytes(double data)
 		{
-			UInt64 x;
+			byte[] src = BitConverter.GetBytes(data);
 
-			*(&x) = *(UInt64*)&data;
+			for (int i = 0; i < sizeof(double); i++)
+			{
+				start[offset++] = src[sizeof(double) - 1 - i];
+			}
 
-			return WriteBytes<UInt64>(x);
+			return true;
 		}
 
 		public bool Copy(byte[] data, uint size)
